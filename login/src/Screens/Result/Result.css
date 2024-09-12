@@ -1,0 +1,36 @@
+/* Result.css */
+.result-container {
+    padding: 20px;
+    font-family: Arial, sans-serif;
+  }
+  
+  .results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 16px;
+    text-align: left;
+  }
+  
+  .results-table th, .results-table td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .results-table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+  }
+  
+  .results-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  .results-table tr:hover {
+    background-color: #f1f1f1;
+  }
+  
+  .results-table td {
+    color: #333;
+  }
+  
