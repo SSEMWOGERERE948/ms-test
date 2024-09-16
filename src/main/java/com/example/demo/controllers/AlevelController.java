@@ -2,11 +2,16 @@ package com.example.demo.controllers;
 
 import com.example.demo.entities.AlevelResult;
 import com.example.demo.services.AlevelService;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -52,4 +57,31 @@ public class AlevelController {
     public void deleteResult(@PathVariable Long id) {
         alevelService.deleteResult(id);
     }
+
+    @PostMapping("/upload")
+    public String uploadDocument(@RequestParam("file") MultipartFile file) throws IOException {
+        // Process the file with Apache POI
+        try (XWPFDocument document = new XWPFDocument(file.getInputStream())) {
+            // Example: Read content from the document
+            for (XWPFParagraph paragraph : document.getParagraphs()) {
+                System.out.println(paragraph.getText());
+            }
+        }
+        return "Document uploaded successfully";
+    }
+
+    @PostMapping("/edit")
+    public byte[] editDocument(@RequestParam("file") MultipartFile file, @RequestParam("content") String content) throws IOException {
+        try (XWPFDocument document = new XWPFDocument(file.getInputStream())) {
+            // Example: Edit the document content
+            XWPFParagraph paragraph = document.createParagraph();
+            paragraph.createRun().setText(content);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            document.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+
 }

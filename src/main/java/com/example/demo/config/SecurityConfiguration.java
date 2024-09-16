@@ -21,13 +21,11 @@ public class SecurityConfiguration {
 
 
     @Bean
-     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/alevel/**").permitAll()
+                        .requestMatchers("/auth/**","/alevel/**","/documents/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->

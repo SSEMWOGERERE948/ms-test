@@ -21,7 +21,7 @@ function Login({ setToken }) {
         (response) => {
           setToken(response.token);  
           alert('Login successful!');
-          navigate('/results');
+          navigate('/');
         },
         (error) => {
           console.error('Login failed', error);

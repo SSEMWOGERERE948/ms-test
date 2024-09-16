@@ -34,6 +34,22 @@ public class AuthenticationService {
         this.authenticationManager = authenticationManager;
     }
 
+    public AuthenticationResponse registerAdmin(RegisterRequest request) {
+        var admin = User.builder()
+                .username(request.getUsername())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(Role.ADMIN)
+                .build();
+
+        userRepository.save(admin);
+        var jwtToken = jwtService.generateToken(admin);
+
+        return AuthenticationResponse.builder()
+                .token(jwtToken)
+                .build();
+    }
+
+
     public AuthenticationResponse register(RegisterRequest request) {
         var user = User.builder()
                 .username(request.getUsername())
