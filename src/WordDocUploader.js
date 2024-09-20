@@ -3,6 +3,7 @@ import { renderAsync } from 'docx-preview';
 
 const WordDocUploader = () => {
   const [fileURL, setFileURL] = useState(null); // To store the URL of the uploaded file
+  const [showInstallMessage, setShowInstallMessage] = useState(false); // To track if the install message should be shown
 
   // Handle the file upload
   const handleFileUpload = async (e) => {
@@ -25,8 +26,16 @@ const WordDocUploader = () => {
 
   // Function to open the document in MS Word
   const openInWord = () => {
+    setShowInstallMessage(false); // Reset the message visibility
+
     if (fileURL) {
+      // Try to open Microsoft Word using the ms-word protocol
       window.location.href = `ms-word:ofe|u|${fileURL}`;
+
+      // Set a fallback timer in case Microsoft Word is not installed
+      setTimeout(() => {
+        setShowInstallMessage(true);
+      }, 3000); // 3 seconds timer before showing the install message
     }
   };
 
@@ -48,9 +57,22 @@ const WordDocUploader = () => {
 
       {/* Button to open the document in Microsoft Word for editing */}
       {fileURL && (
-        <button onClick={openInWord} style={{ marginTop: '20px' }}>
-          Edit in Word
-        </button>
+        <div>
+          <button onClick={openInWord} style={{ marginTop: '20px' }}>
+            Edit in Word
+          </button>
+
+          {/* Message to prompt user to install Microsoft Word if it is not installed */}
+          {showInstallMessage && (
+            <p style={{ color: 'red', marginTop: '10px' }}>
+              It seems Microsoft Word is not installed. Please install Microsoft Office to edit this document.
+              <br />
+              <a href="https://www.microsoft.com/en-us/microsoft-365/get-started-with-office-2019" target="_blank" rel="noopener noreferrer">
+                Install Microsoft Office
+              </a>
+            </p>
+          )}
+        </div>
       )}
     </div>
   );
