@@ -14,6 +14,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -108,81 +112,103 @@ public class DocumentController {
         }
     }
 
-    @RestController
-    @RequestMapping("/api/scan")
-    public class ScanController {
+    @GetMapping("/credentials")
+    public ResponseEntity<Map<String, String>> getCredentials() {
+        Map<String, String> credentials = new HashMap<>();
+        credentials.put("clientId", "245498184843-lrvct4acv7vg8508ldpd75rog7h89h2c.apps.googleusercontent.com");
+        credentials.put("apiKey", "AIzaSyC9L4phalXWNuz5AzmcmEiWR2k502NndLg");
+        credentials.put("scopes", "https://www.googleapis.com/auth/drive.file");
 
-        @PostMapping("/start")
-        public ResponseEntity<String> startScan() {
-            try {
-                // Path to the NAPS2 executable
-                String executablePath = "executables/naps2.console.exe";  // Adjust based on your folder structure
+        return ResponseEntity.ok(credentials);
+    }
 
-                // Path to save the scanned PDFs (inside the project directory in src/main/resources/scanned-documents)
-                String outputFolder = System.getProperty("user.dir") + File.separator + "src" + File.separator +
-                        "main" + File.separator + "resources" + File.separator + "scanned-documents";
-                String outputFile = "ScannedDocument.pdf";  // Name of the scanned file
-                String outputPath = outputFolder + File.separator + outputFile;
+    @PostMapping("/uploadScanned")
+    public ResponseEntity<String> uploadScannedDocument(@RequestBody Map<String, String> request) {
+        try {
+            String base64Image = request.get("image");
+            byte[] imageBytes = Base64.getDecoder().decode(base64Image);
 
-                // Create the output folder if it doesn't exist
-                File folder = new File(outputFolder);
-                if (!folder.exists()) {
-                    folder.mkdirs();  // Creates the folder if it doesn't exist
-                }
+            // Save imageBytes to the database or filesystem
+            // For example, if saving to filesystem:
+            Path destinationFile = Paths.get("uploads/scanned_document.png");
+            Files.write(destinationFile, imageBytes);
 
-                // Check if NAPS2 is installed or run the executable
-                if (!isNaps2Installed()) {
-                    ProcessBuilder processBuilder = new ProcessBuilder(executablePath, "scan", "--profile", "Default", "--output", outputPath);
-                    processBuilder.redirectErrorStream(true);  // Redirect error stream to output stream
+            return ResponseEntity.ok("Document uploaded successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload document.");
+        }
+    }
 
-                    // Start the process
-                    Process process = processBuilder.start();
-                    int exitCode = process.waitFor();  // Wait for the process to complete
+    @PostMapping("/start")
+    public ResponseEntity<String> startScan() {
+        try {
+            // Path to the NAPS2 executable
+            String executablePath = "executables/naps2.console.exe";  // Adjust based on your folder structure
 
-                    if (exitCode == 0) {
-                        return ResponseEntity.ok("Scan completed and saved in project as " + outputPath);
-                    } else {
-                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Scan failed.");
-                    }
-                } else {
-                    return ResponseEntity.ok("NAPS2 is already installed and ready for use.");
-                }
-            } catch (Exception e) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred during scanning: " + e.getMessage());
+            // Path to save the scanned PDFs (inside the project directory in src/main/resources/scanned-documents)
+            String outputFolder = System.getProperty("user.dir") + File.separator + "src" + File.separator +
+                    "main" + File.separator + "resources" + File.separator + "scanned-documents";
+            String outputFile = "ScannedDocument.pdf";  // Name of the scanned file
+            String outputPath = outputFolder + File.separator + outputFile;
+
+            // Create the output folder if it doesn't exist
+            File folder = new File(outputFolder);
+            if (!folder.exists()) {
+                folder.mkdirs();  // Creates the folder if it doesn't exist
             }
-        }
 
-        @GetMapping("/document")
-        public ResponseEntity<FileSystemResource> getScannedDocument() {
-            try {
-                // Path to the saved scanned document
-                String outputFolder = System.getProperty("user.dir") + File.separator + "src" + File.separator +
-                        "main" + File.separator + "resources" + File.separator + "scanned-documents";
-                String outputPath = outputFolder + File.separator + "ScannedDocument.pdf";
+            // Check if NAPS2 is installed or run the executable
+            if (!isNaps2Installed()) {
+                ProcessBuilder processBuilder = new ProcessBuilder(executablePath, "scan", "--profile", "Default", "--output", outputPath);
+                processBuilder.redirectErrorStream(true);  // Redirect error stream to output stream
 
-                File file = new File(outputPath);
+                // Start the process
+                Process process = processBuilder.start();
+                int exitCode = process.waitFor();  // Wait for the process to complete
 
-                if (file.exists()) {
-                    // Return the scanned PDF as a file download
-                    HttpHeaders headers = new HttpHeaders();
-                    headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=ScannedDocument.pdf");
-                    headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE);
-
-                    return ResponseEntity.ok()
-                            .headers(headers)
-                            .body(new FileSystemResource(file));
+                if (exitCode == 0) {
+                    return ResponseEntity.ok("Scan completed and saved in project as " + outputPath);
                 } else {
-                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Scan failed.");
                 }
-            } catch (Exception e) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            } else {
+                return ResponseEntity.ok("NAPS2 is already installed and ready for use.");
             }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred during scanning: " + e.getMessage());
         }
+    }
 
-        private boolean isNaps2Installed() {
-            // Example: Check if NAPS2 is installed by verifying the existence of the executable
-            File naps2Executable = new File("C:\\Program Files\\NAPS2\\naps2.console.exe");  // Adjust path as necessary
-            return naps2Executable.exists();
+    @GetMapping("/document")
+    public ResponseEntity<FileSystemResource> getScannedDocument() {
+        try {
+            // Path to the saved scanned document
+            String outputFolder = System.getProperty("user.dir") + File.separator + "src" + File.separator +
+                    "main" + File.separator + "resources" + File.separator + "scanned-documents";
+            String outputPath = outputFolder + File.separator + "ScannedDocument.pdf";
+
+            File file = new File(outputPath);
+
+            if (file.exists()) {
+                // Return the scanned PDF as a file download
+                HttpHeaders headers = new HttpHeaders();
+                headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=ScannedDocument.pdf");
+                headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE);
+
+                return ResponseEntity.ok()
+                        .headers(headers)
+                        .body(new FileSystemResource(file));
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
+    }
+
+    private boolean isNaps2Installed() {
+        // Example: Check if NAPS2 is installed by verifying the existence of the executable
+        File naps2Executable = new File("C:\\Program Files\\NAPS2\\naps2.console.exe");  // Adjust path as necessary
+        return naps2Executable.exists();
     }
 }
